@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-
-	// "encoding/json"
-	// "math/rand"
+	"math/rand"
 	"net/http"
-	// "strconv"
+	"strconv"
+
 	"github.com/gorilla/mux"
 )
 
@@ -26,13 +25,17 @@ type Director struct {
 
 var movies []Movie
 
-func getMovies(w http.ResponseWriter, r *http.Request) {
+func setHeader(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
+}
+
+func getMovies(w http.ResponseWriter, r *http.Request) {
+	setHeader(w)
 	json.NewEncoder(w).Encode(movies)
 }
 
 func deleteMovie(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+	setHeader(w)
 	params := mux.Vars(r)
 	for index, item := range movies {
 		if item.ID == params["id"] {
@@ -40,6 +43,27 @@ func deleteMovie(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	// Después de borrar la pelicula devolvemos las peliculas existentes sin la eliminada
+	json.NewEncoder(w).Encode(movies)
+}
+
+func getMovie(w http.ResponseWriter, r *http.Request) {
+	setHeader(w)
+	params := mux.Vars(r)
+	for _, item := range movies {
+		if item.ID == params["id"] {
+			json.NewEncoder(w).Encode(item)
+			return
+		}
+	}
+}
+
+func createMovie(w http.ResponseWriter, r *http.Request) {
+	setHeader(w)
+	var movie Movie
+	_ = json.NewDecoder(r.Body).Decode(&movie)
+	movie.ID = strconv.Itoa(rand.Intn(10000))
+	movies = append(movies, movie)
 }
 
 func main() {
@@ -74,8 +98,8 @@ func main() {
 	)
 
 	r.HandleFunc("/movies", getMovies).Methods("GET")
-	// r.HandleFunc("/movies/{id}", getMovie).Methods("GET")
-	// r.HandleFunc("/movies", createMovie).Methods("POST")
+	r.HandleFunc("/movies/{id}", getMovie).Methods("GET")
+	r.HandleFunc("/movies", createMovie).Methods("POST")
 	// r.HandleFunc("/movies/{id}", updateMovie).Methods("PUT")
 	r.HandleFunc("/movies/{id}", deleteMovie).Methods("DELETE")
 
